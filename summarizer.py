@@ -1,4 +1,6 @@
 import os
+import urllib.request
+import urllib.error
 from dotenv import load_dotenv
 from groq import Groq
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -6,7 +8,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # Load the API key and optional proxy from .env
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
-proxy_url = os.getenv("PROXY_URL") # Optional: "http://user:pass@host:port"
+proxy_url = os.getenv("PROXY_URL") 
 
 client = Groq(api_key=api_key)
 
@@ -20,7 +22,7 @@ def get_video_id(url):
         raise ValueError("Could not find video ID in this URL")
 
 def get_transcript(video_id):
-    """Fetch the transcript for a given video ID (supports proxy to bypass cloud blocks)"""
+    """Fetch the transcript (tries standard API first, then falls back to public API)"""
     proxies = None
     if proxy_url:
         proxies = {
@@ -28,29 +30,60 @@ def get_transcript(video_id):
             "https": proxy_url
         }
 
+    # -- METHOD 1: Try standard API (with optional proxy) --
     try:
-        # Try fetching with preferred languages (English/Hindi) and proxy configuration
         fetched_transcript = YouTubeTranscriptApi.get_transcript(
             video_id, 
             languages=['en', 'hi', 'en-US'], 
             proxies=proxies
         )
+        return " ".join([snippet.text for snippet in fetched_transcript])
     except Exception as e:
-        # Fallback to listing and picking the first available transcript if default fails
-        try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
-            first_available = next(iter(transcript_list))
-            fetched_transcript = first_available.fetch()
-        except Exception:
-            # Raise a helpful user-facing error message
-            raise RuntimeError(
-                "YouTube is blocking the cloud server's IP address. "
-                "To deploy this on Vercel, please add a PROXY_URL to your Vercel Environment Variables. "
-                "Alternatively, run this application locally on your computer where your residential IP is not blocked."
-            )
+        print(f"Standard fetch failed: {e}. Trying fallback methods...")
 
-    full_text = " ".join([snippet.text for snippet in fetched_transcript])
-    return full_text
+    # -- METHOD 2: Try listing and picking first transcript --
+    try:
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
+        first_available = next(iter(transcript_list))
+        fetched_transcript = first_available.fetch()
+        return " ".join([snippet.text for snippet in fetched_transcript])
+    except Exception as e:
+        print(f"List transcripts fallback failed: {e}. Trying public API fallback...")
+
+    # -- METHOD 3: Free Public API Fallboard (Works on Vercel without proxy!) --
+    try:
+        fallback_url = f"https://youtube-transcript.ai/transcript/{video_id}.txt"
+        req = urllib.request.Request(
+            fallback_url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        )
+        # 10 second timeout
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html_content = response.read().decode('utf-8')
+            # If we got a valid response (not blank)
+            if html_content and len(html_content.strip()) > 50:
+                return html_content.strip()
+    except Exception as api_err:
+        print(f"Public API fallback failed: {api_err}")
+
+    # -- METHOD 4: Read local cookies.txt if available --
+    if os.path.exists("cookies.txt"):
+        try:
+            fetched_transcript = YouTubeTranscriptApi.get_transcript(
+                video_id, 
+                languages=['en', 'hi', 'en-US'], 
+                cookies="cookies.txt"
+            )
+            return " ".join([snippet.text for snippet in fetched_transcript])
+        except Exception as cookie_err:
+            print(f"Cookie fetch failed: {cookie_err}")
+
+    # If all methods fail
+    raise RuntimeError(
+        "YouTube is blocking the cloud server's IP address. "
+        "To fix this, please upload a 'cookies.txt' file, add a 'PROXY_URL' to Vercel, "
+        "or run the application locally on your computer."
+    )
 
 def summarize_text(transcript, category="general"):
     """Send transcript to Groq and get back a summary, tailored to the content type"""
