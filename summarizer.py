@@ -3,9 +3,11 @@ from dotenv import load_dotenv
 from groq import Groq
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# Load the API key from .env
+# Load the API key and optional proxy from .env
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
+proxy_url = os.getenv("PROXY_URL") # Optional: "http://user:pass@host:port"
+
 client = Groq(api_key=api_key)
 
 def get_video_id(url):
@@ -18,14 +20,34 @@ def get_video_id(url):
         raise ValueError("Could not find video ID in this URL")
 
 def get_transcript(video_id):
-    """Fetch the transcript for a given video ID"""
-    ytt_api = YouTubeTranscriptApi()
+    """Fetch the transcript for a given video ID (supports proxy to bypass cloud blocks)"""
+    proxies = None
+    if proxy_url:
+        proxies = {
+            "http": proxy_url,
+            "https": proxy_url
+        }
+
     try:
-        fetched_transcript = ytt_api.fetch(video_id, languages=['en', 'hi'])
-    except Exception:
-        transcript_list = ytt_api.list(video_id)
-        first_available = next(iter(transcript_list))
-        fetched_transcript = first_available.fetch()
+        # Try fetching with preferred languages (English/Hindi) and proxy configuration
+        fetched_transcript = YouTubeTranscriptApi.get_transcript(
+            video_id, 
+            languages=['en', 'hi', 'en-US'], 
+            proxies=proxies
+        )
+    except Exception as e:
+        # Fallback to listing and picking the first available transcript if default fails
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, proxies=proxies)
+            first_available = next(iter(transcript_list))
+            fetched_transcript = first_available.fetch()
+        except Exception:
+            # Raise a helpful user-facing error message
+            raise RuntimeError(
+                "YouTube is blocking the cloud server's IP address. "
+                "To deploy this on Vercel, please add a PROXY_URL to your Vercel Environment Variables. "
+                "Alternatively, run this application locally on your computer where your residential IP is not blocked."
+            )
 
     full_text = " ".join([snippet.text for snippet in fetched_transcript])
     return full_text
@@ -70,7 +92,6 @@ def summarize_text(transcript, category="general"):
     )
     return response.choices[0].message.content
 
-# ---- Main part (only runs if you execute summarizer.py directly, not when imported) ----
 if __name__ == "__main__":
     url = input("Paste a YouTube video URL: ")
     video_id = get_video_id(url)
