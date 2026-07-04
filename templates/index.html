@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ selected_category or 'general' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ytsummarizer | Elite AI Synthesis</title>
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500;600&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="{{ selected_category or 'general' }}">
+    <!-- Custom Luxury Cursor -->
+    <div id="custom-cursor" class="custom-cursor"></div>
+    <div id="cursor-dot" class="cursor-dot"></div>
+
+    <!-- Background Canvas for Interactive Cosmic Warp -->
+    <canvas id="bg-canvas"></canvas>
+    <div class="vignette-overlay"></div>
+
+    <!-- Cinematic Frame Accents -->
+    <div class="cinematic-frame">
+        <div class="frame-edge edge-tl">SYS.ALPHA // 0.1</div>
+        <div class="frame-edge edge-tr">COGNITIVE INDEX</div>
+        <div class="frame-edge edge-bl">LATENCY AUTO-TUNE</div>
+        <div class="frame-edge edge-br">DESIGNED BY ANTIGRAVITY</div>
+    </div>
+
+    <!-- Background Fine Blueprint Grid -->
+    <div class="blueprint-grid"></div>
+
+    <!-- Floating UI Control Switches -->
+    <div class="floating-controls">
+        <button id="sound-toggle" class="sound-toggle-btn" title="Toggle Sound Interface">
+            <span class="sound-wave wave-1"></span>
+            <span class="sound-wave wave-2"></span>
+            <span class="sound-wave wave-3"></span>
+            <span class="sound-icon" id="sound-icon">🔇</span>
+        </button>
+        <button id="history-toggle" class="history-toggle-btn" title="Toggle Library Nodes">
+            <span class="history-icon">📜</span>
+        </button>
+    </div>
+
+    <!-- Side Library Drawer (Slide Out) -->
+    <div id="history-drawer" class="history-drawer">
+        <div class="drawer-header">
+            <h3 class="drawer-title">SYNTHETIC REGISTRY</h3>
+            <button id="drawer-close" class="drawer-close-btn">&times;</button>
+        </div>
+        <div id="history-list" class="history-list">
+            <div class="history-empty">Registry is vacant. Initiate summary to index a node.</div>
+        </div>
+        <button id="clear-history-btn" class="clear-history-btn">WIPE SECURE LOCAL CACHE</button>
+    </div>
+
+    <!-- Left Instrument Panel: Realtime Telemetry -->
+    <div class="instrument-panel instrument-left">
+        <div class="instrument-header">REALTIME DIAGNOSTICS</div>
+        <div class="instrument-body">
+            <div class="diagnostic-item">
+                <span class="dia-label">COHERENCE RATIO:</span>
+                <span class="dia-value" id="dia-ratio">99.87%</span>
+            </div>
+            <div class="diagnostic-item">
+                <span class="dia-label">CORE TEMP:</span>
+                <span class="dia-value" id="tel-temp">37°C</span>
+            </div>
+            <div class="diagnostic-item">
+                <span class="dia-label">NEURAL THREADS:</span>
+                <span class="dia-value" id="tel-threads">16 ACTIVE</span>
+            </div>
+            <div class="diagnostic-item">
+                <span class="dia-label">STREAM LATENCY:</span>
+                <span class="tel-value" id="tel-ping">12ms</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Instrument Panel: Warp Control -->
+    <div class="instrument-panel instrument-right">
+        <div class="instrument-header">VELOCITY METRICS</div>
+        <div class="instrument-body">
+            <div class="control-item">
+                <label for="particle-speed-range" class="control-label">WARP FACTOR</label>
+                <input type="range" id="particle-speed-range" min="5" max="40" value="10" class="cyber-slider">
+            </div>
+            <div class="control-item">
+                <span class="control-label">CONNECTOR DENSITY</span>
+                <span class="dia-value" id="particle-count-display">220</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Header / Hero Section -->
+        <header class="hero-section">
+            <div class="logo-container">
+                <div class="logo-mark">
+                    <svg viewBox="0 0 100 100" class="logo-svg">
+                        <polygon points="30,20 80,50 30,80" class="logo-triangle-outer" />
+                        <polygon points="40,35 70,50 40,65" class="logo-triangle-inner" />
+                        <circle cx="50" cy="50" r="45" class="logo-ring" />
+                    </svg>
+                </div>
+                <span class="logo-text">ytsummarizer</span>
+            </div>
+            
+            <h1 class="hero-title">
+                <span class="gradient-text glitch" data-text="Summarize YouTube">Summarize YouTube</span>
+                <span class="text-stroke">In High Definition</span>
+            </h1>
+            <p class="hero-tagline">Distill complex content streams into semantic intelligence nodes instantaneously.</p>
+        </header>
+
+        <!-- Main Card Section -->
+        <div class="card-tilt-container">
+            <div class="card" id="main-card">
+                <!-- luxury Card Corner Brackets -->
+                <div class="card-corner corner-top-left"></div>
+                <div class="card-corner corner-top-right"></div>
+                <div class="card-corner corner-bottom-left"></div>
+                <div class="card-corner corner-bottom-right"></div>
+                
+                <form method="POST" id="summarizer-form">
+                    <div class="form-grid">
+                        <!-- Category Selection -->
+                        <div class="select-wrapper">
+                            <select name="category" id="category-select" class="cyber-select">
+                                <option value="general" {% if selected_category == "general" %}selected{% endif %}>⚡ General Synthesis</option>
+                                <option value="study" {% if selected_category == "study" %}selected{% endif %}>📚 Scholarly Mode</option>
+                                <option value="music" {% if selected_category == "music" %}selected{% endif %}>🎵 Sonic Aesthetics</option>
+                            </select>
+                            <div class="select-arrow"></div>
+                        </div>
+
+                        <!-- URL Input -->
+                        <div class="input-wrapper">
+                            <input type="text" name="youtube_url" id="youtube-url" class="cyber-input" placeholder="Paste YouTube link here..." required autocomplete="off">
+                            <span class="input-glow-line"></span>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="cyber-btn" id="submit-btn">
+                            <span class="btn-text">Extract intelligence</span>
+                            <span class="btn-glow"></span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Video Preview Card -->
+                <div id="video-preview" class="video-preview-card hidden">
+                    <div class="preview-thumbnail-wrap">
+                        <img id="preview-img" src="" alt="Video Thumbnail">
+                        <span class="preview-badge">ONLINE RESOURCE</span>
+                    </div>
+                    <div class="preview-details">
+                        <h4 id="preview-title" class="preview-title">LOADING STREAM TARGET</h4>
+                        <p id="preview-id" class="preview-id">STREAMING ID: ---------</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Error Panel -->
+        {% if error %}
+            <div class="error-container fade-in">
+                <div class="error-card glitch-error" id="error-card" data-text="SYSTEM ANOMALY DETECTED">
+                    <span class="error-icon">⚠️</span>
+                    <div class="error-details">
+                        <span class="error-title">SYSTEM THREAD EXCEPTION</span>
+                        <p class="error-message" id="error-msg-text">Error: {{ error }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Summary Panel -->
+        {% if summary %}
+            <div class="summary-container fade-in">
+                <div class="summary-card" id="summary-card">
+                    <div class="summary-header">
+                        <div class="summary-status">
+                            <span class="status-dot pulsing"></span>
+                            <span class="status-text">AI Synthesis Resolved</span>
+                        </div>
+                        <div class="summary-actions">
+                            <button class="copy-btn hover-magnetic" id="copy-summary-btn">
+                                <span class="copy-icon">📋</span> Copy
+                            </button>
+                            <button class="copy-btn hover-magnetic" id="download-summary-btn">
+                                <span class="copy-icon">💾</span> Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="summary-box" id="summary-content">
+                        {{ summary }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Cyberpunk Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="cyber-spinner">
+                <div class="spinner-ring ring-1"></div>
+                <div class="spinner-ring ring-2"></div>
+                <div class="spinner-ring ring-3"></div>
+                <div class="spinner-core"></div>
+            </div>
+            
+            <div class="loading-status">
+                <h3 class="loading-title">DECODING IN PROGRESS</h3>
+                <div class="terminal-box">
+                    <div class="terminal-line" id="terminal-line-1">&gt; ESTABLISHING SYNAPTIC BRIDGES...</div>
+                    <div class="terminal-line" id="terminal-line-2"></div>
+                    <div class="terminal-line" id="terminal-line-3"></div>
+                </div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="loading-scanline"></div>
+    </div>
+
+    <!-- Script Injection -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
